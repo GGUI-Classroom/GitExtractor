@@ -1,12 +1,11 @@
 const input = document.getElementById("repoInput");
-const button = document.getElementById("loadBtn");
 const frame = document.getElementById("previewFrame");
 
-let blobMap = {};      // path -> blob URL
-let fileMap = {};      // path -> { content, isText }
-let rootPath = "/";    // base for resolving
+let blobMap = {};
+let fileMap = {};
+let rootPath = "/";
 
-button.addEventListener("click", () => {
+document.getElementById("loadBtn").addEventListener("click", () => {
   const url = input.value.trim();
   loadRepo(url);
 });
@@ -25,17 +24,15 @@ async function loadRepo(repoUrl) {
     fileMap = await fetchRepoTree(owner, repo);
     blobMap = {};
 
-    // Build blobs for all files (rewriting text ones later)
     for (const [path, { content, isText }] of Object.entries(fileMap)) {
       const mime = guessMime(path);
       const blob = new Blob([content], { type: mime });
       blobMap["/" + path] = URL.createObjectURL(blob);
     }
 
-    // Find entry HTML (index.html at root or closest)
     const entry = findEntryHtml();
     if (!entry) {
-      alert("No index.html or root HTML file found.");
+      alert("No index.html found.");
       return;
     }
 
@@ -55,21 +52,14 @@ function findEntryHtml() {
   return "/" + candidates[0];
 }
 
-// Main router: load a path from virtual FS into iframe
 function navigateTo(path) {
   if (!path.startsWith("/")) path = "/" + path;
-  if (!fileMap[path.slice(1)]) {
-    console.warn("Path not found in FS:", path);
-    return;
-  }
+  if (!fileMap[path.slice(1)]) return;
 
   const { content, isText } = fileMap[path.slice(1)];
   const mime = guessMime(path);
 
-  if (!isText || !mime.startsWith("text/html")) {
-    console.warn("navigateTo called on non-HTML:", path);
-    return;
-  }
+  if (!isText || !mime.startsWith("text/html")) return;
 
   const html = rewriteHtml(path, content);
   const blob = new Blob([html], { type: "text/html" });
@@ -82,14 +72,12 @@ function navigateTo(path) {
   frame.src = url;
 }
 
-// Rewrite HTML: links, scripts, images, etc.
 function rewriteHtml(currentPath, htmlString) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(htmlString, "text/html");
 
   const baseDir = currentPath.substring(0, currentPath.lastIndexOf("/") + 1);
 
-  // <link>, <script>, <img>, <a>, <iframe>, <source>, etc.
   const attrTargets = [
     ["link", "href"],
     ["script", "src"],
@@ -110,7 +98,6 @@ function rewriteHtml(currentPath, htmlString) {
       const blobUrl = blobMap[resolved];
       if (!blobUrl) return;
 
-      // For <a>, we want to keep virtual routing, not direct blob nav
       if (tag === "a") {
         el.setAttribute("data-virtual-href", resolved);
         el.setAttribute("href", "#");
@@ -120,23 +107,18 @@ function rewriteHtml(currentPath, htmlString) {
     });
   }
 
-  // Inline <style> and linked CSS (we only handle inline here; linked CSS is already blobbed)
   doc.querySelectorAll("style").forEach(styleEl => {
-    const css = styleEl.textContent;
-    styleEl.textContent = rewriteCss(baseDir, css);
+    styleEl.textContent = rewriteCss(baseDir, styleEl.textContent);
   });
 
-  // Simple inline JS import rewriting (very basic)
   doc.querySelectorAll("script").forEach(scriptEl => {
     if (!scriptEl.textContent) return;
-    const js = scriptEl.textContent;
-    scriptEl.textContent = rewriteJsImports(baseDir, js);
+    scriptEl.textContent = rewriteJsImports(baseDir, scriptEl.textContent);
   });
 
   return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
 }
 
-// Rewrite CSS url(...)
 function rewriteCss(baseDir, css) {
   return css.replace(/url\(([^)]+)\)/g, (match, raw) => {
     let url = raw.trim().replace(/^['"]|['"]$/g, "");
@@ -145,34 +127,27 @@ function rewriteCss(baseDir, css) {
     }
     const resolved = resolvePath(baseDir, url);
     const blobUrl = blobMap[resolved];
-    if (!blobUrl) return match;
-    return `url("${blobUrl}")`;
+    return blobUrl ? `url("${blobUrl}")` : match;
   });
 }
 
-// Very basic JS import rewriting
 function rewriteJsImports(baseDir, js) {
   return js.replace(/import\s+([^'"]*)['"]([^'"]+)['"]/g, (match, what, spec) => {
     if (isExternalUrl(spec) || spec.startsWith("data:") || spec.startsWith("blob:")) return match;
     const resolved = resolvePath(baseDir, spec);
     const blobUrl = blobMap[resolved];
-    if (!blobUrl) return match;
-    return `import ${what}"${blobUrl}"`;
+    return blobUrl ? `import ${what}"${blobUrl}"` : match;
   });
 }
 
-// Inject router into iframe to handle <a data-virtual-href>
 function injectRouterScript(win, doc) {
   doc.addEventListener("click", e => {
     const a = e.target.closest("a[data-virtual-href]");
     if (!a) return;
     e.preventDefault();
-    const targetPath = a.getAttribute("data-virtual-href");
-    navigateTo(targetPath);
+    navigateTo(a.getAttribute("data-virtual-href"));
   });
 }
-
-// Helpers
 
 function isExternalUrl(url) {
   return /^https?:\/\//i.test(url) || url.startsWith("//");
