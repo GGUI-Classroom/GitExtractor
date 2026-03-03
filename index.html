@@ -1,22 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Repo Previewer</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>GitHub Repo Previewer</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <h1>GitHub Repo Previewer</h1>
 
-    <h1>GitHub Repo Previewer</h1>
-
+  <div id="controls">
     <input id="repoInput" type="text" placeholder="https://github.com/user/repo">
     <button id="loadBtn">Load</button>
+  </div>
 
-    <div id="viewer">
-        <iframe id="previewFrame"></iframe>
-    </div>
+  <div id="viewer">
+    <iframe id="previewFrame"></iframe>
+  </div>
 
-    <script src="lib/github.js"></script>
-    <script src="script.js"></script>
+  <script src="lib/github.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
