@@ -1,9 +1,10 @@
+// script.js — virtual filesystem previewer using ZIP-based loader
+
 const input = document.getElementById("repoInput");
 const frame = document.getElementById("previewFrame");
 
 let blobMap = {};
 let fileMap = {};
-let rootPath = "/";
 
 document.getElementById("loadBtn").addEventListener("click", () => {
   const url = input.value.trim();
@@ -21,9 +22,11 @@ async function loadRepo(repoUrl) {
   const repo = match[2];
 
   try {
-    fileMap = await fetchRepoTree(owner, repo);
-    blobMap = {};
+    const branch = await getDefaultBranch(owner, repo);
+    const zipBuffer = await downloadRepoZip(owner, repo, branch);
+    fileMap = await unzipRepo(zipBuffer);
 
+    blobMap = {};
     for (const [path, { content, isText }] of Object.entries(fileMap)) {
       const mime = guessMime(path);
       const blob = new Blob([content], { type: mime });
@@ -56,12 +59,9 @@ function navigateTo(path) {
   if (!path.startsWith("/")) path = "/" + path;
   if (!fileMap[path.slice(1)]) return;
 
-  const { content, isText } = fileMap[path.slice(1)];
-  const mime = guessMime(path);
-
-  if (!isText || !mime.startsWith("text/html")) return;
-
+  const { content } = fileMap[path.slice(1)];
   const html = rewriteHtml(path, content);
+
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
 
