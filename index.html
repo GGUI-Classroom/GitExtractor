@@ -1,76 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>GitHub Repo Previewer</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <style>
-    body {
-      margin: 0;
-      background: #0d0d0d;
-      color: white;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
-
-    #controls {
-      padding: 12px;
-      background: #111;
-      display: flex;
-      gap: 10px;
-      border-bottom: 1px solid #222;
-    }
-
-    #repoInput {
-      flex: 1;
-      padding: 10px;
-      border-radius: 6px;
-      border: none;
-      outline: none;
-      background: #1a1a1a;
-      color: white;
-    }
-
-    #loadBtn {
-      padding: 10px 18px;
-      border: none;
-      border-radius: 6px;
-      background: #00aaff;
-      color: black;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    #loadBtn:hover {
-      background: #33bbff;
-    }
-
-    #previewFrame {
-      flex: 1;
-      width: 100%;
-      border: none;
-      background: white;
-    }
-  </style>
+  <title>GitHub Pages Loader</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
   <div id="controls">
-    <input id="repoInput" type="text" placeholder="https://github.com/user/repo">
+    <input id="repoInput" placeholder="https://github.com/user/repo">
     <button id="loadBtn">Load</button>
   </div>
 
-  <iframe id="previewFrame"></iframe>
+  <div id="content"></div>
 
-  <!-- JSZip (required for ZIP extraction) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-
-  <!-- Your loader + preview engine -->
-  <script src="lib/github.js"></script>
   <script src="script.js"></script>
-
 </body>
 </html>
