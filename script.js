@@ -1,44 +1,29 @@
-const input = document.getElementById("repoInput");
-const content = document.getElementById("content");
+async function loadGithack(url) {
+  const res = await fetch(url);
+  const html = await res.text();
 
-document.getElementById("loadBtn").addEventListener("click", () => {
-  const url = input.value.trim();
-  loadSite(url);
-});
+  // Create a DOM parser
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
 
-function convertToPagesUrl(repoUrl) {
-  const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/#]+)/i);
-  if (!match) return null;
+  // Inject HTML body
+  const content = document.getElementById("content");
+  content.innerHTML = doc.body.innerHTML;
 
-  const user = match[1];
-  const repo = match[2];
+  // Execute scripts
+  const scripts = doc.querySelectorAll("script");
 
-  return `https://${user}.github.io/${repo}/`;
-}
+  scripts.forEach(oldScript => {
+    const newScript = document.createElement("script");
 
-async function loadSite(repoUrl) {
-  const pagesUrl = convertToPagesUrl(repoUrl);
-  if (!pagesUrl) {
-    alert("Invalid GitHub repo URL");
-    return;
-  }
-
-  try {
-    const html = await fetch(pagesUrl).then(r => r.text());
-    const rewritten = rewriteHtml(html, pagesUrl);
-    content.innerHTML = rewritten;
-  } catch (e) {
-    console.error(e);
-    alert("Failed to load site.");
-  }
-}
-
-function rewriteHtml(html, baseUrl) {
-  return html.replace(/(src|href)=["']([^"']+)["']/g, (match, attr, url) => {
-    if (url.startsWith("http") || url.startsWith("//") || url.startsWith("#")) {
-      return match;
+    if (oldScript.src) {
+      // External script
+      newScript.src = oldScript.src;
+    } else {
+      // Inline script
+      newScript.textContent = oldScript.textContent;
     }
-    const absolute = new URL(url, baseUrl).href;
-    return `${attr}="${absolute}"`;
+
+    document.body.appendChild(newScript);
   });
 }
